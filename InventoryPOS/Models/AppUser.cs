@@ -8,8 +8,8 @@ namespace InventoryPOS.Models
         [StringLength(100)]
         [MaxLength(100)]
         [Required]
-        public string Name {  get; set; }
-        public string Address {  get; set; }
+        public string? Name {  get; set; }
+        public string? Address {  get; set; }
 
     }
 }
