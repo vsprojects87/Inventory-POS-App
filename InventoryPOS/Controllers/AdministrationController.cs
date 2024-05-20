@@ -3,17 +3,18 @@ using InventoryPOS.Models.ViewModel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Razor.Compilation;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventoryPOS.Controllers
 {
-	public class AdministrationController :Controller 
+	public class AdministrationController : Controller
 	{
 		private readonly RoleManager<IdentityRole> roleManager;
 		private readonly UserManager<AppUser> userManager;
 
 		public AdministrationController(RoleManager<IdentityRole> roleManager,
 										UserManager<AppUser> userManager)
-        {
+		{
 			this.roleManager = roleManager;
 			this.userManager = userManager;
 		}
@@ -25,9 +26,9 @@ namespace InventoryPOS.Controllers
 		}
 
 		[HttpPost]
-		public async  Task<IActionResult> CreateRole(CreateRoleViewModel model)
+		public async Task<IActionResult> CreateRole(CreateRoleViewModel model)
 		{
-			if(ModelState.IsValid)
+			if (ModelState.IsValid)
 			{
 				IdentityRole identityRole = new IdentityRole()
 				{
@@ -36,9 +37,9 @@ namespace InventoryPOS.Controllers
 				IdentityResult result = await roleManager.CreateAsync(identityRole);
 				if (result.Succeeded)
 				{
-					return RedirectToAction("index","home");
+					return RedirectToAction("index", "home");
 				}
-				foreach(IdentityError error in result.Errors)
+				foreach (IdentityError error in result.Errors)
 				{
 					ModelState.AddModelError("", error.Description);
 				}
@@ -95,9 +96,9 @@ namespace InventoryPOS.Controllers
 					return RedirectToAction("ListRoles");
 				}
 
-				foreach(var error in result.Errors)
+				foreach (var error in result.Errors)
 				{
-					ModelState.AddModelError("",error.Description);
+					ModelState.AddModelError("", error.Description);
 				}
 			}
 			return View(model);
@@ -109,11 +110,32 @@ namespace InventoryPOS.Controllers
 			ViewBag.roleId = roleId;
 
 			var role = await roleManager.FindByIdAsync(roleId);
-			if(role == null)
+			if (role == null)
 			{
 				ViewBag.ErrorMessage = $"Role with Id={roleId} cannot be found";
 				return View($"NotFound");
 			}
+
+			//var model = new List<UserRoleViewModel>();
+			//foreach (var user in userManager.Users)
+			//{
+			//	var userRoleViewModel = new UserRoleViewModel
+			//	{
+			//		UserId = user.Id,
+			//		UserName = user.UserName
+			//	};
+			//	if (await userManager.IsInRoleAsync(user, role.Name))
+			//	{
+			//		userRoleViewModel.IsSelected = true;
+			//	}
+			//	else
+			//	{
+			//		userRoleViewModel.IsSelected = false;
+			//	}
+			//	model.Add(userRoleViewModel);
+			//}
+
+			var usersInRole = await userManager.GetUsersInRoleAsync(role.Name);
 
 			var model = new List<UserRoleViewModel>();
 
@@ -122,23 +144,73 @@ namespace InventoryPOS.Controllers
 				var userRoleViewModel = new UserRoleViewModel
 				{
 					UserId = user.Id,
-					UserName = user.UserName
+					UserName = user.UserName,
+					IsSelected = usersInRole.Contains(user)
 				};
 
-				if(await userManager.IsInRoleAsync(user,role.Name))
-				{
-					userRoleViewModel.IsSelected = true;
-				}
-				else
-				{
-					userRoleViewModel.IsSelected = false;
-				}
 				model.Add(userRoleViewModel);
 			}
 
 			return View(model);
-
 		}
+
+
+
+		[HttpPost]
+		public async Task<IActionResult> EditUsersInRole(List<UserRoleViewModel> model,string roleId)
+		{
+			ViewBag.roleId = roleId;
+
+			var role = await roleManager.FindByIdAsync(roleId);
+			if (role == null)
+			{
+				ViewBag.ErrorMessage = $"Role with Id={roleId} cannot be found";
+				return View($"NotFound");
+			}
+
+			for(int i = 0; i < model.Count; i++)
+			{
+				var user = await userManager.FindByIdAsync(model[i].UserId);
+
+				IdentityResult result = null;
+				if (model[i].IsSelected && !(await userManager.IsInRoleAsync(user,role.Name)))
+				{
+					result = await userManager.AddToRoleAsync(user, role.Name);
+				}
+				else if (!model[i].IsSelected && await userManager.IsInRoleAsync(user, role.Name))
+				{
+					result = await userManager.RemoveFromRoleAsync(user, role.Name);
+				}
+				else
+				{
+					continue;
+				}
+				// we are checking if user is checked and already doesnt exist in roles then we
+				// assign roles otherwise if uncheck then we remove roles
+				// if not both then we just skip the current user and check next user in list
+
+				if (result.Succeeded)
+				{
+					if (i < (model.Count - 1))
+					{
+						continue;
+						// here if i is less than total number of model count then we still have
+						// records which is nothing but more users so we will continue
+					}
+					else
+					{
+						return RedirectToAction("EditRole", new { Id = roleId });
+						// if we have already reach the end of loop then we will exit and
+						// we will go back to editrole page we began and will send back the id
+						// of that role
+					}
+				}
+			}
+
+			return RedirectToAction("EditRole", new { Id = roleId });
+			//in case if we dont have any users then we will redirect to editrole action
+		}
+
 
 	}
 }
