@@ -1,0 +1,19 @@
+﻿@model List<UserRoleViewModel>
+@{
+	var roleId = ViewBag.roleId;
+}
+
+<form method="post">
+	<div class="card">
+		<div class="card-header">
+			<h3>Add or remove users from this role</h3>
+		</div>
+		<div class="card-body">
+
+		</div>
+		<div class="card-footer">
+			<input type="submit" value="update" class="btn btn-primary" style="width:auto"/>
+			<a asp-action="EditRole" class="btn btn-primary" asp-route-id="@roleId" style="width:auto">Cancel</a>
+		</div>
+	</div>
+</form>
