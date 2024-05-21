@@ -30,7 +30,7 @@ namespace InventoryPOS.Controllers
                 var result = await signInManager.PasswordSignInAsync(model.Username!, model.Password!,model.RememberMe,false);
                 if (result.Succeeded)
                 {
-                    return RedirectToAction("Index", "Home");
+					return RedirectToAction("Index", "Home");
                 }
                 ModelState.AddModelError("","Invalid Login Attempt");
                 return View(model);
@@ -58,7 +58,14 @@ namespace InventoryPOS.Controllers
                 var result = await userManager.CreateAsync(user,model.Password!);
                 if (result.Succeeded)
                 {
-                    return RedirectToAction("Index","Home");
+					if (signInManager.IsSignedIn(User) && User.IsInRole("Admin"))
+					{
+						return RedirectToAction("ListUsers", "Administration");
+					}
+					// if admin creating new users then admin not suppose to log out after creating or
+					// registering new user rather he suppose to return to ListUsers page
+					return RedirectToAction("Index","Home");
+                    // new user will be redirected to login page
                 }
                 foreach (var error in result.Errors)
                 {

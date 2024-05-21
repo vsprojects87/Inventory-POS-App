@@ -1,5 +1,6 @@
 ﻿using InventoryPOS.Models;
 using InventoryPOS.Models.ViewModel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Razor.Compilation;
@@ -7,6 +8,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InventoryPOS.Controllers
 {
+	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin,User")]
+	//we can assign autorization to two roles  well
+
+	//[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "User")]
+	// if we mention like this then the user need to have both roles as admin and user
+	//having admin wont give access to this page
+
 	public class AdministrationController : Controller
 	{
 		private readonly RoleManager<IdentityRole> roleManager;
@@ -19,6 +29,16 @@ namespace InventoryPOS.Controllers
 			this.userManager = userManager;
 		}
 
+
+		[HttpGet]
+		public IActionResult ListUsers()
+		{
+			var users = userManager.Users;
+			return View(users);
+		}
+
+
+		// for the role
 		[HttpGet]
 		public IActionResult CreateRole()
 		{
@@ -105,6 +125,9 @@ namespace InventoryPOS.Controllers
 		}
 
 		[HttpGet]
+		//[Authorize(Roles = "Admin")]
+		// we can set up role for specific action, to give access or restrict it
+		//[AllowAnonymous] this will give access to anyone
 		public async Task<IActionResult> EditUsersInRole(string roleId)
 		{
 			ViewBag.roleId = roleId;
@@ -208,7 +231,7 @@ namespace InventoryPOS.Controllers
 			}
 
 			return RedirectToAction("EditRole", new { Id = roleId });
-			//in case if we dont have any users then we will redirect to editrole action
+			//in case if we dont have any users then we will redirect to editrole
 		}
 
 
