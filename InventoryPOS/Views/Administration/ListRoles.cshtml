@@ -1,13 +1,32 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @model IEnumerable<IdentityRole>
 
+
+<script>
+
+	function confirmDelete(uniqueId,isDeleteClick) {
+		var deleteSpan = 'deleteSpan_' + uniqueId;
+		var confirmDeleteSpan = 'confirmDeleteSpan_' + uniqueId;
+		if (isDeleteClick) {
+			$('#' + deleteSpan).hide();
+			$('#' + confirmDeleteSpan).show();
+		}
+		else {
+			$('#' + deleteSpan).show();
+			$('#' + confirmDeleteSpan).hide();
+		}
+	} 
+</script>
+
+
 <h2>All Roles</h2>
 
-@if(Model.Any()){
+@if (Model.Any())
+{
 	<a class="btn btn-primary mb-3" style="width:auto" asp-action="CreateRole" asp-controller="administration">
 		Add New Roles
 	</a>
-	foreach(var role in Model)
+	foreach (var role in Model)
 	{
 		<div class="card mb-3">
 			Role Id : @role.Id
@@ -16,12 +35,24 @@
 			<h5 class="card-title">@role.Name</h5>
 		</div>
 		<div class="card-footer">
-			<a asp-route-id="@role.Id" class="btn btn-primary" asp-action="EditRole" asp-controller="administration">Edit</a>
-			<a href="#" class="btn btn-danger">Delete</a>
+			<form asp-action="DeleteRole" asp-controller="Administration" asp-route-id="@role.Id" method="post">
+				  
+				<a asp-route-id="@role.Id" class="btn btn-primary" asp-action="EditRole" asp-controller="administration">Edit</a>
+
+				<span style="display:none" id="confirmDeleteSpan_@role.Id">
+					<button type="submit" class="btn btn-danger">Yes</button>
+					<a href="#" class="btn btn-info" onclick="confirmDelete('@role.Id',false)">No</a>
+					<span>Are you sure you want to Delete?</span>
+				</span>
+				<span id="deleteSpan_@role.Id">
+					<a href="#" class="btn btn-danger" onclick="confirmDelete('@role.Id',true)">Delete</a>
+				</span>
+			</form>
 		</div>
 	}
 }
-else{
+else
+{
 	<div class="card">
 		<div class="card-header">
 			No Roles created

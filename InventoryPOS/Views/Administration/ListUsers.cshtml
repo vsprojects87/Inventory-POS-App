@@ -1,6 +1,33 @@
 ﻿@model IEnumerable<AppUser>
 
-	<h2>All Users</h2>
+<script>
+
+	function confirmDelete(uniqueId,isDeleteClick) {
+		var deleteSpan = 'deleteSpan_' + uniqueId;
+		var confirmDeleteSpan = 'confirmDeleteSpan_' + uniqueId;
+		if (isDeleteClick) {
+			$('#' + deleteSpan).hide();
+			$('#' + confirmDeleteSpan).show();
+		}
+		else {
+			$('#' + deleteSpan).show();
+			$('#' + confirmDeleteSpan).hide();
+		}
+	} 
+	// we are getting Id of the span that we want to show or hide
+	// since we are fetching for which id we want to show or hide we are passing id
+	// if we have more than 1 users then span id will be copied for every user and id should be unique
+	// thats why we have mention id in span like deleteSpan_user.Id and confirmDeleteUser_user.Id
+	// we have submit button only on yes since DeleteUser action method will be invoke on submit so want user to
+	// be deleted once we click yes
+	// above is the jquery code where we have id of user but our span name is like confirmDeleteSpan_user.id 
+	// for that reason we are concatinating confirmDeleteSpan_ + uniqeId , which is nothing but user id that we will
+	// pass on onclick below, in other parameter isDeleteClick we are passing true or false to hide and show span on condition
+</script>
+
+
+
+<h2>All Users</h2>
 
 @if (Model.Any())
 {
@@ -16,8 +43,25 @@
 			<h5 class="card-title">@user.UserName</h5>
 		</div>
 		<div class="card-footer">
-			<a asp-route-id="@user.Id" class="btn btn-primary" asp-action="EditRole" asp-controller="administration">Edit</a>
-			<a href="#" class="btn btn-danger">Delete</a>
+			<form asp-action="DeleteUser" asp-controller="Administration" asp-route-id="@user.Id" method="post">
+				<a asp-route-id="@user.Id" class="btn btn-primary" asp-action="EditUser" asp-controller="administration">
+					Edit
+				</a>
+@* 				way one of delete confirmation - onclick
+				<button type="submit" class="btn btn-danger"
+				onclick="return confirm('Are you sure, you want to delete user @user.UserName ?')">
+					Delete
+				</button>
+ *@
+				<span style="display:none" id="confirmDeleteSpan_@user.Id">
+					<button type="submit" class="btn btn-danger">Yes</button>
+					<a href="#" class="btn btn-info" onclick="confirmDelete('@user.Id',false)">No</a>
+					<span>Are you sure you want to Delete?</span>
+				</span>
+				<span id="deleteSpan_@user.Id">
+					<a href="#" class="btn btn-danger" onclick="confirmDelete('@user.Id',true)">Delete</a>
+				</span>
+			</form>
 		</div>
 	}
 }
