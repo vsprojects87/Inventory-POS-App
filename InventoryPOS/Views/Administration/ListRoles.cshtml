@@ -1,6 +1,7 @@
-﻿@using Microsoft.AspNetCore.Identity
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
 @model IEnumerable<IdentityRole>
-
+@inject IAuthorizationService authorizationService
 
 <script>
 
@@ -36,8 +37,11 @@
 		</div>
 		<div class="card-footer">
 			<form asp-action="DeleteRole" asp-controller="Administration" asp-route-id="@role.Id" method="post">
-				  
-				<a asp-route-id="@role.Id" class="btn btn-primary" asp-action="EditRole" asp-controller="administration">Edit</a>
+
+				@if ((await authorizationService.AuthorizeAsync(User, "EditRolePolicy")).Succeeded){
+					<a asp-route-id="@role.Id" class="btn btn-primary" asp-action="EditRole"
+					asp-controller="administration">Edit</a>
+				}
 
 				<span style="display:none" id="confirmDeleteSpan_@role.Id">
 					<button type="submit" class="btn btn-danger">Yes</button>

@@ -6,18 +6,21 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Razor.Compilation;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Security.Claims;
 
 namespace InventoryPOS.Controllers
 {
-	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin")]
+	// single role authorization
 	//[Authorize(Roles = "Admin,User")]
-	//we can assign autorization to two roles  well
+	//we can assign authorization to two roles as well
 
 	//[Authorize(Roles = "Admin")]
 	//[Authorize(Roles = "User")]
 	// if we mention like this then the user need to have both roles as admin and user
 	//having admin wont give access to this page
 
+	[Authorize(Policy = ("AdminRolePolicy"))]
 	public class AdministrationController : Controller
 	{
 		private readonly RoleManager<IdentityRole> roleManager;
@@ -116,6 +119,7 @@ namespace InventoryPOS.Controllers
 		}
 
 		[HttpGet]
+		[Authorize(Policy = "EditRolePolicy")]
 		public async Task<IActionResult> ManageUserRoles(string userId)
 		{
 			ViewBag.userId = userId;
@@ -165,6 +169,7 @@ namespace InventoryPOS.Controllers
 
 
 		[HttpPost]
+		[Authorize(Policy = "EditRolePolicy")]
 		public async Task<IActionResult> ManageUserRoles(List<UserRolesViewModel> model,string userId)
 		{
 			var user = await userManager.FindByIdAsync(userId);
@@ -191,17 +196,79 @@ namespace InventoryPOS.Controllers
 			{
 				ModelState.AddModelError("", "Cannot add selected roles to user");
 				return View(model);
-
 			}
 			return RedirectToAction("EditUser", new { Id = userId });
 		}
 
 
+		[HttpGet]
+		public async Task<IActionResult> ManageUserClaims(string userId)
+		{
+			var user = await userManager.FindByIdAsync(userId);
+			if (user == null)
+			{
+				ViewBag.ErrorMessage = $"User with Id={userId} cannot be found";
+				return View("NotFound");
+			}
+
+			var existingUserClaims = await userManager.GetClaimsAsync(user);
+
+			var model = new UserClaimsViewModel
+			{
+				UserId = userId
+			};
+
+			foreach(Claim claim in ClaimsStore.AllClaims)
+			{
+				UserClaim userClaim = new UserClaim
+				{
+					ClaimType = claim.Type
+				};
+				if (existingUserClaims.Any(c => c.Type == claim.Type))
+				{
+					userClaim.IsSelected = true;
+				}
+				model.Claims.Add(userClaim);
+			}
+			return View(model);
+		}
 
 
-			// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			// for the role
-			[HttpGet]
+		[HttpPost]
+		public async Task<IActionResult> ManageUserClaims(UserClaimsViewModel model, string userId)
+		{
+			var user = await userManager.FindByIdAsync(userId);
+			if (user == null)
+			{
+				ViewBag.ErrorMessage = $"User with Id={userId} cannot be found";
+				return View("NotFound");
+			}
+
+			var claims = await userManager.GetClaimsAsync(user);
+			var result = await userManager.RemoveClaimsAsync(user, claims);
+
+			if (!result.Succeeded)
+			{
+				ModelState.AddModelError("","Cannot remove user existing claims");
+				return View(model);
+			}
+			result = await userManager.AddClaimsAsync(user,
+				model.Claims.Where(c => c.IsSelected).Select(c => new Claim(c.ClaimType, c.ClaimType)));
+
+			if (!result.Succeeded)
+			{
+				ModelState.AddModelError("", "Cannot add selected claims to user");
+				return View(model);
+			}
+
+			return RedirectToAction("EditUser", new {Id = model.UserId });
+		}
+
+
+
+		// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		// for the role
+		[HttpGet]
 		public IActionResult CreateRole()
 		{
 			return View();
@@ -236,7 +303,8 @@ namespace InventoryPOS.Controllers
 			return View(roles);
 		}
 
-
+		[Authorize(Policy = "DeleteRolePolicy")]
+		// we have registered policy in program.cs
 		public async Task<IActionResult> DeleteRole(string id)
 		{
 			var role = await roleManager.FindByIdAsync(id);

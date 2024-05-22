@@ -1,5 +1,7 @@
 using InventoryPOS.Data;
 using InventoryPOS.Models;
+using InventoryPOS.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +24,28 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(
         options.Password.RequireLowercase = false;
     })
     .AddEntityFrameworkStores<ApplicationDBContext>().AddDefaultTokenProviders();
+
+builder.Services.AddAuthorization(option =>
+{
+    option.AddPolicy("DeleteRolePolicy",
+        policy=> policy.RequireClaim("Delete Role").RequireClaim("Create Role"));
+
+	//option.AddPolicy("EditRolePolicy",
+	//   policy => policy.RequireClaim("Edit Role"));
+
+	option.AddPolicy("EditRolePolicy",
+	policy => policy.AddRequirements(new ManageAdminRolesAndClaimsRequirememt()));
+
+	option.AddPolicy("AdminRolePolicy",
+		policy => policy.RequireRole("Admin"));
+});
+// here if user wants to delete the role he need to have both delete role and create role claim
+// in second option we are creating the adminrolepolicy which requires role admin
+// both the options are not same, first is for claims and other is for roles
+// role is also claim to 'type role' where claim is policy
+
+builder.Services.AddSingleton<IAuthorizationHandler,CanEditOnlyOtherAdminRolesAndClaimsHandler>();
+// created service for handler
 
 var app = builder.Build();
 
